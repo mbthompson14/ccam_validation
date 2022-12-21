@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # libraries
 import pandas as pd
 import os
@@ -20,12 +22,15 @@ tasks = [
     'file_name': '_Synonyms_'}
     ]
 
+
 def print_files(participant_files):
+    # prints the names of the files in participant_files
     print("Files found:\n")
     for file in participant_files:
         print(os.path.split(file)[1])
 
 def find_files(participant):
+    # finds all files related to the participant and returns a list of file paths
     participant_files = []
     for task in tasks:
         file_name = str(participant) + task['file_name'] + "*"
@@ -34,18 +39,23 @@ def find_files(participant):
     return participant_files
 
 def pgngs_validation(participant_files):
+    # validates PGNGS data
     csv_files = []
+    # get a list of all PGNGS csv files
     for file in participant_files:
         if re.search(tasks[0]['file_name'] + ".*.csv", file):
             csv_files.append(file)
+    # grab the first csv file (if more than one)
     try:        
         pgngs_data_path = csv_files[0]  #TODO: method for choosing the most recent/most complete file
         print(f"\nChecking PGNGS file: {os.path.split(pgngs_data_path)[1]} ...")
         pgngs_df = pd.read_csv(pgngs_data_path)
+        # check that the file has the expected number of rows
         if len(pgngs_df) == 1375:
             print("PGNGS: Task was finished.")
         else:
             print("PGNGS: Task not finished. Check data file.")
+        # check that all blocks have responses
         blocks = [False, False, False, False, False, False]
         for i, block in enumerate(blocks):
             if not all(pd.isna(pgngs_df[f'block{i+1}_resp.keys'])):
@@ -58,18 +68,23 @@ def pgngs_validation(participant_files):
         print("\nPGNGS file not found.")
 
 def fept_validation(participant_files):
+    # validates FEPT data
     csv_files = []
+    # get a list of all FEPT csv files
     for file in participant_files:
         if re.search(tasks[1]['file_name'] + ".*.csv", file):
             csv_files.append(file)
+    # grab the first csv file (if more than one)
     try:    
         fept_data_path = csv_files[0]
         print(f"\nChecking FEPT file: {os.path.split(fept_data_path)[1]} ...")
         fept_df = pd.read_csv(fept_data_path)
+        # check that the file has the expected number of rows
         if len(fept_df) == 127:
             print("FEPT: Task was finished.")
         else:
             print("FEPT: Task not finished. Check data file.")
+        # check that there are a sufficient number of correct responses
         if fept_df['key_resp_face.corr'].sum() >= 29:
             print(f"FEPT: Sufficient number of FACES correct: {fept_df['key_resp_face.corr'].sum():.0f}.")
         else:
@@ -82,18 +97,23 @@ def fept_validation(participant_files):
         print("\nFEPT file not found.")
 
 def familiarity_validation(participant_files):
+    # validates familiarity data
     csv_files = []
+    # get a list of all familiarity csv files
     for file in participant_files:
         if re.search(tasks[2]['file_name'] + ".*.csv", file):
             csv_files.append(file)
+    # grab first csv file
     try:    
         fam_data_path = csv_files[0]  #TODO: method for choosing the most recent/most complete file
         print(f"\nChecking FAMILIARITY file: {os.path.split(fam_data_path)[1]} ...")
         fam_df = pd.read_csv(fam_data_path)
+        # check that the file has the expected number of rows
         if len(fam_df) == 24:
             print("FAMILIARITY: Task was finished.")
         else:
             print("FAMILIARITY: Task not finished. Check data file.")
+        # check that there was more than just one key pressed
         if fam_df['key_resp.keys'].nunique() > 1:
             print("FAMILIARITY: Responses are varied.")
         else:
@@ -103,22 +123,28 @@ def familiarity_validation(participant_files):
         print("\nFAMILIARITY file not found")
 
 def synonyms_validation(participant_files):
+    # validates synonyms data
     csv_files = []
+    # get a list of all synonyms csv files
     for file in participant_files:
         if re.search(tasks[3]['file_name'] + ".*.csv", file):
             csv_files.append(file)
+    # grab first csv file
     try:    
         syn_data_path = csv_files[0]  #TODO: method for choosing the most recent/most complete file
         print(f"\nChecking SYNONYMS file: {os.path.split(syn_data_path)[1]} ...")
         syn_df = pd.read_csv(syn_data_path)
+        # check that the file has the expected number of rows
         if len(syn_df) == 43:
             print("SYNONYMS: Task was finished.")
         else:
             print("SYNONYMS: Task not finished. Check data file.")
 
+        # grab responses and correct columns
         responses = syn_df['key_resp_2.keys'].dropna().reset_index(drop=True)
         correct = syn_df['correct'].dropna().reset_index(drop=True)
 
+        # convert 'comma' to ',' and 'period' to '.', then increase score if correct
         score = 0
         for i, response in enumerate(responses):
             if response == 'comma':
@@ -136,11 +162,17 @@ def synonyms_validation(participant_files):
         print("\nSYNONYMS file not found.")
 
 def main():
-    participant = str(input("Enter participant screening number: "))
-    participant_files = find_files(participant)
-    pgngs_validation(participant_files)
-    fept_validation(participant_files)
-    familiarity_validation(participant_files)
-    synonyms_validation(participant_files)
+    # find & validate files for each participant number entered
+    while True:
+        participant = str(input("Enter participant screening number (e to exit): "))
+        if participant == 'e':
+            exit()
+        else:
+            participant_files = find_files(participant)
+        pgngs_validation(participant_files)
+        fept_validation(participant_files)
+        familiarity_validation(participant_files)
+        synonyms_validation(participant_files)
 
+# run the script
 main()
